@@ -1,0 +1,219 @@
+function plot_primary_infection_elisa_neu_vs_nonNeu(primaryElisa, outPrefix)
+% plot_primary_infection_elisa_neu_vs_nonNeu
+%
+% SCI-style figure:
+% Simulated antibody expansion after primary infection.
+% Neutralizing and non-neutralizing antibody responses expand with
+% comparable magnitude.
+
+if nargin < 2
+    outPrefix = 'primary_infection_elisa_neutralizing_vs_nonneutralizing';
+end
+
+t = primaryElisa.time(:);
+
+% Log transform for visual clarity
+neuIgM    = log10(primaryElisa.neu.IgM + 1);
+neuIgG    = log10(primaryElisa.neu.IgG + 1);
+neuTotal  = log10(primaryElisa.neu.total + 1);
+
+nonIgM    = log10(primaryElisa.nonNeu.IgM + 1);
+nonIgG    = log10(primaryElisa.nonNeu.IgG + 1);
+nonTotal  = log10(primaryElisa.nonNeu.total + 1);
+
+% -------------------------------------------------------------------------
+% Style
+% -------------------------------------------------------------------------
+set(groot, 'DefaultAxesFontName', 'Arial');
+set(groot, 'DefaultTextFontName', 'Arial');
+set(groot, 'DefaultAxesFontSize', 8.5);
+set(groot, 'DefaultAxesLineWidth', 0.9);
+set(groot, 'DefaultAxesTickDir', 'out');
+set(groot, 'DefaultLineLineWidth', 1.8);
+
+igmColor   = [0.10 0.37 0.71];
+iggColor   = [0.80 0.18 0.16];
+totalColor = [0.10 0.10 0.10];
+
+neuFillColor    = [0.82 0.90 1.00];
+nonNeuFillColor = [1.00 0.88 0.82];
+
+fig = figure( ...
+    'Color', 'w', ...
+    'Units', 'centimeters', ...
+    'Position', [2 2 18 16], ...
+    'Renderer', 'painters');
+
+tl = tiledlayout(fig, 2, 1, ...
+    'TileSpacing', 'compact', ...
+    'Padding', 'compact');
+
+%% ------------------------------------------------------------------------
+% Panel a: neutralizing antibody ELISA
+% -------------------------------------------------------------------------
+ax1 = nexttile(tl, 1);
+hold(ax1, 'on');
+
+plot_response_band(ax1, t, neuIgM, neuIgG, neuFillColor);
+
+plot(ax1, t, neuIgM, ...
+    'Color', igmColor, ...
+    'LineWidth', 1.8);
+
+plot(ax1, t, neuIgG, ...
+    'Color', iggColor, ...
+    'LineWidth', 1.8);
+
+plot(ax1, t, neuTotal, ...
+    'Color', totalColor, ...
+    'LineWidth', 2.3);
+
+format_elisa_axes(ax1);
+
+ylabel(ax1, 'log_{10}(ELISA signal + 1)', ...
+    'FontSize', 9.5, ...
+    'FontWeight', 'bold');
+
+title(ax1, 'a  Neutralizing antibody response', ...
+    'FontSize', 10.5, ...
+    'FontWeight', 'bold');
+
+legend(ax1, ...
+    {'IgM-IgG range', 'IgM', 'IgG', 'IgM + IgG'}, ...
+    'Location', 'southeast', ...
+    'Box', 'off', ...
+    'FontSize', 8);
+
+text(ax1, 0.02, 0.90, 'RBD-specific', ...
+    'Units', 'normalized', ...
+    'FontSize', 9, ...
+    'FontWeight', 'bold', ...
+    'Color', [0.08 0.25 0.55]);
+
+hold(ax1, 'off');
+
+%% ------------------------------------------------------------------------
+% Panel b: non-neutralizing antibody ELISA
+% -------------------------------------------------------------------------
+ax2 = nexttile(tl, 2);
+hold(ax2, 'on');
+
+plot_response_band(ax2, t, nonIgM, nonIgG, nonNeuFillColor);
+
+plot(ax2, t, nonIgM, ...
+    'Color', igmColor, ...
+    'LineWidth', 1.8);
+
+plot(ax2, t, nonIgG, ...
+    'Color', iggColor, ...
+    'LineWidth', 1.8);
+
+plot(ax2, t, nonTotal, ...
+    'Color', totalColor, ...
+    'LineWidth', 2.3);
+
+format_elisa_axes(ax2);
+
+xlabel(ax2, 'Time after primary infection', ...
+    'FontSize', 9.5, ...
+    'FontWeight', 'bold');
+
+ylabel(ax2, 'log_{10}(ELISA signal + 1)', ...
+    'FontSize', 9.5, ...
+    'FontWeight', 'bold');
+
+title(ax2, 'b  Non-neutralizing antibody response', ...
+    'FontSize', 10.5, ...
+    'FontWeight', 'bold');
+
+legend(ax2, ...
+    {'IgM-IgG range', 'IgM', 'IgG', 'IgM + IgG'}, ...
+    'Location', 'southeast', ...
+    'Box', 'off', ...
+    'FontSize', 8);
+
+text(ax2, 0.02, 0.90, 'non-RBD-specific', ...
+    'Units', 'normalized', ...
+    'FontSize', 9, ...
+    'FontWeight', 'bold', ...
+    'Color', [0.58 0.20 0.08]);
+
+hold(ax2, 'off');
+
+%% ------------------------------------------------------------------------
+% Shared limits and title
+% -------------------------------------------------------------------------
+linkaxes([ax1 ax2], 'x');
+
+xlim(ax1, [min(t), max(t)]);
+
+allY = [neuIgM; neuIgG; neuTotal; nonIgM; nonIgG; nonTotal];
+yl = [0, max(allY) * 1.08];
+
+if yl(2) <= 0
+    yl = [0 1];
+end
+
+ylim(ax1, yl);
+ylim(ax2, yl);
+
+title(tl, ...
+    {'Simulated antibody expansion after primary infection', ...
+     'Neutralizing and non-neutralizing antibody responses expand with comparable magnitude'}, ...
+    'FontSize', 12, ...
+    'FontWeight', 'bold');
+
+drawnow;
+
+%% ------------------------------------------------------------------------
+% Export
+% -------------------------------------------------------------------------
+exportgraphics(fig, [outPrefix '.png'], ...
+    'Resolution', 600, ...
+    'BackgroundColor', 'white');
+
+exportgraphics(fig, [outPrefix '.pdf'], ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'white');
+
+end
+
+%% ========================================================================
+% Helper: response band
+% ========================================================================
+
+function plot_response_band(ax, t, y1, y2, fillColor)
+
+lowerY = min(y1, y2);
+upperY = max(y1, y2);
+
+patch(ax, ...
+    [t; flipud(t)], ...
+    [lowerY; flipud(upperY)], ...
+    fillColor, ...
+    'EdgeColor', 'none', ...
+    'FaceAlpha', 0.45);
+
+end
+
+%% ========================================================================
+% Helper: axes style
+% ========================================================================
+
+function format_elisa_axes(ax)
+
+box(ax, 'off');
+grid(ax, 'on');
+
+set(ax, ...
+    'FontName', 'Arial', ...
+    'FontSize', 8.5, ...
+    'LineWidth', 0.9, ...
+    'TickDir', 'out', ...
+    'Layer', 'top', ...
+    'GridColor', [0.86 0.86 0.86], ...
+    'GridAlpha', 0.35, ...
+    'XColor', [0.15 0.15 0.15], ...
+    'YColor', [0.15 0.15 0.15]);
+
+end
